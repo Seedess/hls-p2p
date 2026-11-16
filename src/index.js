@@ -62,12 +62,46 @@ async function resolveConfig(options) {
  * also receives peer counts. All state is per instance, so several players can
  * live on one page.
  */
+const DEFAULT_ORIGIN = 'https://seedess.com';
+
+function originFor(options) {
+  return (options.origin ?? DEFAULT_ORIGIN).replace(/\/+$/, '');
+}
+
+/** Accept { stream, token } and derive the three URLs; explicit URLs win. */
+function withDerivedUrls(options = {}) {
+  const stream = options.stream ?? options.room;
+  const token = options.token;
+  if (!stream || !token) return options;
+  const origin = originFor(options);
+  return {
+    ...options,
+    room: stream,
+    signalingUrl:
+      options.signalingUrl ??
+      `${origin}/signaling/room/${encodeURIComponent(stream)}?token=${encodeURIComponent(token)}`,
+    configUrl:
+      options.configUrl ?? `${origin}/signaling/config?token=${encodeURIComponent(token)}`,
+  };
+}
+
+function derivedMaster(options = {}) {
+  const stream = options.stream ?? options.room;
+  const token = options.token;
+  if (!stream || !token) return null;
+  return `${originFor(options)}/play/${encodeURIComponent(stream)}/master.m3u8?token=${encodeURIComponent(
+    token,
+  )}`;
+}
+
 class Controller {
-  constructor(options = {}) {
+  constructor(rawOptions = {}) {
+    const options = withDerivedUrls(rawOptions);
     this.options = options;
     this.role = options.role ?? 'peer';
     this.room =
       options.room ??
+      options.stream ??
       param('room') ??
       `seedess-${hashKey(String(options.streamId ?? options.src ?? location.pathname))}`;
     this.peerId = options.peerId ?? param('peer') ?? randomId('peer');
@@ -175,15 +209,24 @@ export function attach(hls, options = {}) {
  *   player.on('stats', console.log);
  */
 export async function createPlayer(video, src, options = {}) {
+  if (src && typeof src === 'object') {
+    options = src;
+    src = undefined;
+  }
   const Hls = options.Hls ?? globalThis.Hls;
   if (!Hls) throw new Error('Seedess: hls.js is not loaded');
 
-  const controller = new Controller({ ...options, src });
+  const source = src ?? derivedMaster(options);
+  if (!source) {
+    throw new Error('Seedess: pass a manifest URL or { stream, token }');
+  }
+
+  const controller = new Controller({ ...options, src: source });
   const hls = new Hls({ fLoader: controller.Loader, ...(options.hlsConfig ?? {}) });
   controller.hls = hls;
 
   await controller.ready;
-  hls.loadSource(src);
+  hls.loadSource(source);
   hls.attachMedia(video);
   return controller;
 }
