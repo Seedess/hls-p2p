@@ -1,0 +1,42 @@
+{
+  "name": "@seedess/hls-p2p",
+  "version": "0.1.0",
+  "description": "Drop-in hls.js plugin that turns any verified HLS stream into a peer-assisted one.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "hls",
+    "hls.js",
+    "p2p",
+    "webrtc",
+    "peer-assisted",
+    "video",
+    "offload"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node scripts/check.js && node --test test/*.test.js",
+    "prepack": "npm run check"
+  },
+  "dependencies": {
+    "@seedess/core": "0.1.0"
+  },
+  "homepage": "https://seedess.com/docs/libraries/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Seedess/hls-p2p.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Seedess/hls-p2p/issues"
+  }
+}
