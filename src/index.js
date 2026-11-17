@@ -26,7 +26,7 @@ function param(name) {
 }
 
 async function resolveConfig(options) {
-  const iceServers = options.iceServers ?? null;
+  let iceServers = options.iceServers ?? null;
   let offloadCap = options.offloadCap ?? null;
   let meteredDefault = options.meteredDefault ?? false;
 
@@ -42,6 +42,7 @@ async function resolveConfig(options) {
       if (response.ok) {
         const body = await response.json();
         const server = body?.data ?? body ?? {};
+        if (!iceServers && Array.isArray(server.iceServers)) iceServers = server.iceServers;
         if (options.offloadCap == null && server.offloadCap != null) offloadCap = server.offloadCap;
         if (options.meteredDefault == null && server.meteredDefault != null) {
           meteredDefault = server.meteredDefault;
@@ -131,8 +132,13 @@ class Controller {
       peerId: this.peerId,
       role: this.role,
       onStats: (stats) => this.publish(stats),
+      onPeers: (peers) => {
+        const connected = peers.filter((peer) => peer.connected).length;
+        this.publish({ ...this.stats, peers: peers.length, connectedPeers: connected });
+      },
       requestTimeout: options.requestTimeout,
       haveWaitMs: options.haveWaitMs,
+      hedgeDelay: options.hedgeDelay,
       verifyMode: options.verifyMode ?? 'auto',
       profile: options.profile ?? false,
       offloadCap: options.offloadCap ?? null,
@@ -175,6 +181,10 @@ class Controller {
 
   waitForOpenPeer(timeout) {
     return this.mesh.waitForOpenPeer(timeout);
+  }
+
+  waitForHave(seq, timeout) {
+    return this.mesh.waitForHave(seq, timeout);
   }
 
   destroy() {
