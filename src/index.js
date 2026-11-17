@@ -77,7 +77,7 @@ function withDerivedUrls(options = {}) {
   const origin = originFor(options);
   return {
     ...options,
-    room: stream,
+    room: options.room ?? stream,
     signalingUrl:
       options.signalingUrl ??
       `${origin}/signaling/room/${encodeURIComponent(stream)}?token=${encodeURIComponent(token)}`,
